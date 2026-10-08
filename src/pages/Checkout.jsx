@@ -152,6 +152,10 @@ const Checkout = () => {
 
       // Send EmailJS notification to store owner if configured
       if (settings?.emailjs_service_id && settings?.emailjs_template_id && settings?.emailjs_public_key) {
+        const itemsSummary = items
+          .map(it => `${it.name} (x${it.qty}) - ${fmt(it.price)} للوحدة - ${fmt(it.price * it.qty)}`)
+          .join('\n');
+
         emailService.sendEmail({
           serviceId: settings.emailjs_service_id,
           templateId: settings.emailjs_template_id,
@@ -164,7 +168,14 @@ const Checkout = () => {
             customer_wilaya: form.wilaya,
             customer_address: form.address.trim(),
             total_amount: `${grandTotal} DZD`,
-            items_summary: items.map(it => `${it.name} (x${it.qty})`).join(', '),
+            total: Number(grandTotal).toLocaleString('ar-DZ'),
+            items_summary: itemsSummary,
+            order_items: itemsSummary,
+            payment_method: form.payment === 'cod'
+              ? 'الدفع عند الاستلام نقداً'
+              : form.payment === 'ccp'
+                ? 'تحويل حساب بريدي CCP'
+                : 'تطبيق BaridiMob',
             notes: form.notes ? form.notes.trim() : 'لا توجد ملاحظات',
             order_date: new Date().toLocaleString('ar-DZ'),
           },
