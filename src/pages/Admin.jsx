@@ -25,7 +25,9 @@ const Admin = () => {
     return localStorage.getItem('bouragba_admin_auth') === 'true';
   });
   const [activeSection, setActiveSection] = useState('overview');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth > 900 : true;
+  });
 
   const handleLogout = () => {
     localStorage.removeItem('bouragba_admin_auth');

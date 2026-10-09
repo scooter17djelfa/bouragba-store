@@ -183,12 +183,21 @@
 
 @media (max-width: 480px) {
   .product-info {
-    padding: 0.75rem;
+    padding: 0.65rem;
   }
   .product-name {
     font-size: 0.85rem;
+    margin-bottom: 0.45rem;
   }
   .product-price {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
+  }
+  .product-old-price {
+    font-size: 0.75rem;
+  }
+  .product-cart-btn-circle {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
   }
 }

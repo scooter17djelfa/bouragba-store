@@ -18,6 +18,7 @@ const AdminProducts = () => {
     name: '',
     category: 'هواتف ذكية',
     brand: '',
+    costPrice: '',
     price: '',
     oldPrice: '',
     stock: '10',
@@ -63,6 +64,7 @@ const AdminProducts = () => {
       name: '',
       category: categoriesList[0]?.name || 'هواتف ذكية',
       brand: '',
+      costPrice: '',
       price: '',
       oldPrice: '',
       stock: '10',
@@ -87,6 +89,7 @@ const AdminProducts = () => {
       name: p.name,
       category: p.category,
       brand: p.brand || '',
+      costPrice: p.costPrice !== undefined && p.costPrice !== null ? p.costPrice : '',
       price: p.price,
       oldPrice: p.oldPrice || '',
       stock: p.stock,
@@ -208,6 +211,7 @@ const AdminProducts = () => {
         name: formData.name.trim(),
         category: formData.category,
         brand: formData.brand.trim(),
+        costPrice: formData.costPrice !== '' ? Number(formData.costPrice) : 0,
         price: Number(formData.price),
         oldPrice: formData.oldPrice ? Number(formData.oldPrice) : null,
         stock: Number(formData.stock) || 0,
@@ -306,7 +310,7 @@ const AdminProducts = () => {
                 <th>اسم المنتج</th>
                 <th>الفئة</th>
                 <th>العلامة</th>
-                <th>السعر</th>
+                <th>السعر والتكلفة</th>
                 <th>المخزون</th>
                 <th>الحالة</th>
                 <th>الإجراءات</th>
@@ -348,6 +352,25 @@ const AdminProducts = () => {
                   <td>
                     <div className="price-tag">{fmt(p.price)}</div>
                     {p.oldPrice && <small className="old-price-tag">{fmt(p.oldPrice)}</small>}
+                    <div style={{ fontSize: '0.78rem', color: 'var(--gray-500)', marginTop: '3px' }}>
+                      <span style={{ fontWeight: 600 }}>شراء: </span>
+                      <span>{fmt(p.costPrice || 0)}</span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: (Number(p.price) - Number(p.costPrice || 0)) >= 0 ? '#16a34a' : '#dc2626',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        marginTop: '2px'
+                      }}
+                      title="صافي ربح بيع القطعة الواحدة"
+                    >
+                      <i className="fa-solid fa-arrow-trend-up" style={{ fontSize: '0.7rem' }}></i>
+                      <span>ربح: {fmt(Number(p.price) - Number(p.costPrice || 0))}</span>
+                    </div>
                   </td>
                   <td>
                     <span className={`stock-badge ${p.stock > 0 ? 'available' : 'empty'}`}>
@@ -449,7 +472,7 @@ const AdminProducts = () => {
 
                 {/* Price */}
                 <div className="form-group">
-                  <label className="form-label">السعر (د.ج) *</label>
+                  <label className="form-label">سعر البيع للزبون (د.ج) *</label>
                   <input
                     type="number"
                     required
@@ -459,6 +482,44 @@ const AdminProducts = () => {
                     className="form-input"
                     placeholder="مثال: 185000"
                   />
+                </div>
+
+                {/* Cost Price */}
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>
+                      <i className="fa-solid fa-file-invoice-dollar" style={{ marginLeft: '0.35rem', color: '#16a34a' }}></i>
+                      سعر الشراء / التكلفة (د.ج) *
+                    </span>
+                    <small style={{ color: 'var(--gray-500)', fontSize: '0.72rem' }}>لحساب صافي الربح</small>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.costPrice}
+                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                    className="form-input"
+                    placeholder="سعر شراء القطعة من المورّد"
+                  />
+                  {formData.price && formData.costPrice !== '' && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: (Number(formData.price) - Number(formData.costPrice)) >= 0 ? '#f0fdf4' : '#fef2f2',
+                      border: `1px solid ${(Number(formData.price) - Number(formData.costPrice)) >= 0 ? '#bbf7d0' : '#fecaca'}`,
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.35rem 0.65rem',
+                      fontSize: '0.78rem',
+                      marginTop: '0.35rem'
+                    }}>
+                      <span>ربح القطعة المتوقع:</span>
+                      <strong style={{ color: (Number(formData.price) - Number(formData.costPrice)) >= 0 ? '#16a34a' : '#dc2626' }}>
+                        {fmt(Number(formData.price) - Number(formData.costPrice))}
+                        {Number(formData.price) > 0 && ` (${Math.round(((Number(formData.price) - Number(formData.costPrice)) / Number(formData.price)) * 100)}%)`}
+                      </strong>
+                    </div>
+                  )}
                 </div>
 
                 {/* Old Price */}

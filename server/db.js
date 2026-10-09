@@ -21,6 +21,7 @@ export function initDB() {
       name TEXT NOT NULL,
       category TEXT NOT NULL,
       brand TEXT DEFAULT '',
+      cost_price REAL DEFAULT 0,
       price REAL NOT NULL,
       old_price REAL DEFAULT NULL,
       stock INTEGER DEFAULT 0,
@@ -85,6 +86,13 @@ export function initDB() {
       value TEXT NOT NULL
     );
   `);
+
+  // Migration: Ensure cost_price column exists in products table for SQLite
+  try {
+    db.prepare('ALTER TABLE products ADD COLUMN cost_price REAL DEFAULT 0').run();
+  } catch (e) {
+    // Column already exists
+  }
 
   // Default Categories with Font Awesome icon classes (NO EMOJIS)
   const categoryCount = db.prepare('SELECT count(*) as count FROM categories').get().count;
@@ -244,8 +252,8 @@ export function initDB() {
   const prodCount = db.prepare('SELECT count(*) as count FROM products').get().count;
   if (prodCount === 0) {
     const insertProd = db.prepare(`
-      INSERT INTO products (name, category, brand, price, old_price, stock, image, images, description, specs, rating, reviews, is_new, is_featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO products (name, category, brand, cost_price, price, old_price, stock, image, images, description, specs, rating, reviews, is_new, is_featured)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const initialProducts = [
@@ -253,6 +261,7 @@ export function initDB() {
         'iPhone 15 Pro Max',
         'هواتف ذكية',
         'Apple',
+        165000,
         185000,
         210000,
         12,
@@ -280,6 +289,7 @@ export function initDB() {
         'Samsung Galaxy S24 Ultra',
         'هواتف ذكية',
         'Samsung',
+        148000,
         168000,
         195000,
         8,
@@ -306,6 +316,7 @@ export function initDB() {
         'AirPods Pro (الجيل الثاني)',
         'صوتيات وسماعات',
         'Apple',
+        30000,
         38000,
         45000,
         20,
@@ -329,6 +340,7 @@ export function initDB() {
         'شاحن Apple 20W USB-C الأصلي',
         'شواحن وكابلات',
         'Apple',
+        2800,
         4500,
         5500,
         35,
@@ -352,6 +364,16 @@ export function initDB() {
     for (const prod of initialProducts) {
       insertProd.run(...prod);
     }
+  }
+
+  // Backfill cost_price for existing initial products if 0 or null
+  try {
+    db.prepare('UPDATE products SET cost_price = 165000 WHERE id = 1 AND (cost_price IS NULL OR cost_price = 0)').run();
+    db.prepare('UPDATE products SET cost_price = 148000 WHERE id = 2 AND (cost_price IS NULL OR cost_price = 0)').run();
+    db.prepare('UPDATE products SET cost_price = 30000 WHERE id = 3 AND (cost_price IS NULL OR cost_price = 0)').run();
+    db.prepare('UPDATE products SET cost_price = 2800 WHERE id = 4 AND (cost_price IS NULL OR cost_price = 0)').run();
+  } catch (e) {
+    // Ignore if not present
   }
 }
 

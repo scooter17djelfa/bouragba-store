@@ -48,6 +48,7 @@ function formatProduct(row) {
     name: row.name,
     category: row.category,
     brand: row.brand || '',
+    costPrice: row.cost_price ? Number(row.cost_price) : 0,
     price: Number(row.price),
     oldPrice: row.old_price ? Number(row.old_price) : null,
     stock: Number(row.stock),
@@ -142,6 +143,7 @@ app.post('/api/products', (req, res) => {
       name,
       category,
       brand,
+      costPrice,
       price,
       oldPrice,
       stock,
@@ -163,14 +165,15 @@ app.post('/api/products', (req, res) => {
 
     const stmt = db.prepare(`
       INSERT INTO products (
-        name, category, brand, price, old_price, stock, image, images, description, specs, rating, reviews, is_new, is_featured
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        name, category, brand, cost_price, price, old_price, stock, image, images, description, specs, rating, reviews, is_new, is_featured
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
       name.trim(),
       category || 'هواتف ذكية',
       brand || '',
+      costPrice !== undefined ? Number(costPrice) : 0,
       Number(price),
       oldPrice ? Number(oldPrice) : null,
       Number(stock) || 0,
@@ -204,6 +207,7 @@ app.put('/api/products/:id', (req, res) => {
       name,
       category,
       brand,
+      costPrice,
       price,
       oldPrice,
       stock,
@@ -229,6 +233,7 @@ app.put('/api/products/:id', (req, res) => {
         name = ?,
         category = ?,
         brand = ?,
+        cost_price = ?,
         price = ?,
         old_price = ?,
         stock = ?,
@@ -246,6 +251,7 @@ app.put('/api/products/:id', (req, res) => {
       name !== undefined ? name.trim() : existing.name,
       category !== undefined ? category : existing.category,
       brand !== undefined ? brand : existing.brand,
+      costPrice !== undefined ? Number(costPrice) : existing.cost_price,
       price !== undefined ? Number(price) : existing.price,
       oldPrice !== undefined ? (oldPrice ? Number(oldPrice) : null) : existing.old_price,
       stock !== undefined ? Number(stock) : existing.stock,
@@ -383,6 +389,14 @@ app.post('/api/orders', (req, res) => {
       return res.status(400).json({ error: 'يرجى تقديم كافة المعلومات المطلوبة للطلب' });
     }
 
+    // Snapshot product cost_price for exact historical profit tracking
+    const dbProds = db.prepare('SELECT id, cost_price FROM products').all();
+    const costLookup = new Map(dbProds.map(p => [p.id, Number(p.cost_price || 0)]));
+    const enrichedItems = items.map(it => ({
+      ...it,
+      costPrice: it.costPrice !== undefined ? Number(it.costPrice) : (costLookup.get(it.id) || 0)
+    }));
+
     const stmt = db.prepare(`
       INSERT INTO orders (
         customer_name, customer_phone, customer_wilaya, customer_commune,
@@ -395,7 +409,7 @@ app.post('/api/orders', (req, res) => {
       customerPhone,
       customerWilaya,
       customerCommune || '',
-      JSON.stringify(items),
+      JSON.stringify(enrichedItems),
       Number(subtotal),
       Number(shippingCost),
       Number(discount || 0),
@@ -652,23 +666,96 @@ app.get('/api/stats', (req, res) => {
     const revenue = db.prepare("SELECT COALESCE(SUM(total), 0) as total FROM orders WHERE status != 'cancelled'").get().total;
     const productsCount = db.prepare('SELECT count(*) as count FROM products').get().count;
     const outOfStock = db.prepare('SELECT count(*) as count FROM products WHERE stock = 0').get().count;
-    const recentOrders = db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 5').all().map(o => ({
-      id: o.id,
-      customerName: o.customer_name,
-      customerPhone: o.customer_phone,
-      total: o.total,
-      status: o.status,
-      createdAt: o.created_at
-    }));
+
+    // Fetch all products for cost price mapping & inventory evaluation
+    const prods = db.prepare('SELECT id, price, cost_price, stock FROM products').all();
+    const costMap = new Map();
+    let totalInventoryCost = 0;
+    let potentialProfit = 0;
+
+    for (const p of prods) {
+      const c = Number(p.cost_price || 0);
+      const pr = Number(p.price || 0);
+      const s = Number(p.stock || 0);
+      costMap.set(p.id, c);
+      totalInventoryCost += c * s;
+      potentialProfit += Math.max(0, pr - c) * s;
+    }
+
+    // Calculate Net Profit and Sold Costs from active (non-cancelled) orders
+    const nonCancelledOrders = db.prepare("SELECT * FROM orders WHERE status != 'cancelled'").all();
+    let totalCostOfSold = 0;
+    let netProfit = 0;
+    let totalProductRevenue = 0;
+
+    for (const o of nonCancelledOrders) {
+      let items = [];
+      try { items = JSON.parse(o.items); } catch (e) { items = []; }
+
+      let orderItemsCost = 0;
+      let orderItemsRev = 0;
+
+      for (const it of items) {
+        const itemQty = Number(it.qty || 1);
+        const itemSellingPrice = Number(it.price || 0);
+        const itemCostPrice = Number(it.costPrice !== undefined ? it.costPrice : (costMap.get(it.id) || 0));
+
+        orderItemsCost += itemCostPrice * itemQty;
+        orderItemsRev += itemSellingPrice * itemQty;
+      }
+
+      const discount = Number(o.discount || 0);
+      const orderNetProfit = (orderItemsRev - orderItemsCost) - discount;
+
+      totalCostOfSold += orderItemsCost;
+      totalProductRevenue += (orderItemsRev - discount);
+      netProfit += orderNetProfit;
+    }
+
+    const profitMargin = totalProductRevenue > 0
+      ? Math.round((netProfit / totalProductRevenue) * 100)
+      : 0;
+
+    const recentOrders = db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 5').all().map(o => {
+      let items = [];
+      try { items = JSON.parse(o.items); } catch (e) { items = []; }
+
+      let oCost = 0;
+      let oRev = 0;
+      for (const it of items) {
+        const itemQty = Number(it.qty || 1);
+        const itemCostPrice = Number(it.costPrice !== undefined ? it.costPrice : (costMap.get(it.id) || 0));
+        oCost += itemCostPrice * itemQty;
+        oRev += Number(it.price || 0) * itemQty;
+      }
+      const oProfit = (oRev - oCost) - Number(o.discount || 0);
+
+      return {
+        id: o.id,
+        customerName: o.customer_name,
+        customerPhone: o.customer_phone,
+        total: o.total,
+        status: o.status,
+        profit: oProfit,
+        createdAt: o.created_at
+      };
+    });
 
     res.json({
       ordersCount,
       revenue,
+      totalProductRevenue,
+      totalCostOfSold,
+      netProfit,
+      profitMargin,
+      totalInventoryCost,
+      potentialProfit,
       productsCount,
       outOfStock,
       recentOrders
     });
   } catch (error) {
+    console.error('Error in /api/stats:', error);
     res.status(500).json({ error: 'تعذر جلب الإحصائيات' });
   }
 });

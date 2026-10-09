@@ -16,6 +16,85 @@ const ProductDetail = () => {
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(false);
   const [activeTab, setActiveTab] = useState('desc');
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [shareToast, setShareToast] = useState('');
+
+  const triggerShareToast = (msg) => {
+    setShareToast(msg);
+    setTimeout(() => setShareToast(''), 3200);
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      triggerShareToast('تم نسخ رابط المنتج إلى الحافظة بنجاح!');
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch (e) {
+      const input = document.createElement('input');
+      input.value = window.location.href;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopiedLink(true);
+      triggerShareToast('تم نسخ رابط المنتج إلى الحافظة بنجاح!');
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
+
+  const handleNativeShare = async () => {
+    const url = window.location.href;
+    const text = product ? `تفقّد منتج ${product.name} بسعر ${fmt(product.price)} على متجر بوراقبة` : '';
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product ? product.name : 'متجر بوراقبة',
+          text: text,
+          url: url,
+        });
+      } catch (err) {
+        // user dismissed share dialog
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!product) return;
+    const url = window.location.href;
+    const text = encodeURIComponent(`شاهد هذا المنتج الرائع:\n*${product.name}*\nالسعر: ${fmt(product.price)}\nالرابط: ${url}`);
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleShareFacebook = () => {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleShareTelegram = () => {
+    if (!product) return;
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`تصفّح ${product.name} بسعر ${fmt(product.price)} على متجر بوراقبة:`);
+    window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleShareInstagram = async () => {
+    await handleCopyLink();
+    triggerShareToast('تم نسخ رابط المنتج! يمكنك الآن لصقه في انستغرام ستوري أو في الرسائل الخاصة');
+    setTimeout(() => {
+      window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+    }, 700);
+  };
+
+  const handleShareTikTok = async () => {
+    await handleCopyLink();
+    triggerShareToast('تم نسخ رابط المنتج! يمكنك الآن مشاركته في تيك توك');
+    setTimeout(() => {
+      window.open('https://www.tiktok.com/', '_blank', 'noopener,noreferrer');
+    }, 700);
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -247,6 +326,107 @@ const ProductDetail = () => {
                 <span>منتج أصلي ومضمون 100%</span>
               </div>
             </div>
+
+            {/* Share Product Section */}
+            <div className="detail-share-box" id="product-share-box">
+              <div className="share-box-header">
+                <div className="share-box-title">
+                  <i className="fa-solid fa-share-nodes" style={{ color: 'var(--primary)', marginLeft: '0.45rem' }}></i>
+                  <span>مشاركة المنتج:</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-quick-share"
+                  onClick={handleNativeShare}
+                  title="مشاركة عبر تطبيقات الهاتف أو اللابتوب"
+                  id="btn-quick-share"
+                >
+                  <i className="fa-solid fa-arrow-up-from-bracket"></i>
+                  <span>مشاركة سريعة</span>
+                </button>
+              </div>
+
+              {/* Copy link input bar */}
+              <div className="share-copy-bar">
+                <input
+                  type="text"
+                  readOnly
+                  value={typeof window !== 'undefined' ? window.location.href : ''}
+                  className="share-link-input"
+                  onClick={(e) => e.target.select()}
+                  aria-label="رابط المنتج"
+                  id="share-link-input"
+                />
+                <button
+                  type="button"
+                  className={`btn-copy-link ${copiedLink ? 'copied' : ''}`}
+                  onClick={handleCopyLink}
+                  id="btn-copy-product-link"
+                  title="نسخ الرابط"
+                >
+                  <i className={copiedLink ? "fa-solid fa-check" : "fa-solid fa-copy"}></i>
+                  <span>{copiedLink ? 'تم النسخ!' : 'نسخ الرابط'}</span>
+                </button>
+              </div>
+
+              {/* Social Channels Row */}
+              <div className="share-social-grid">
+                <button
+                  type="button"
+                  className="social-btn btn-whatsapp"
+                  onClick={handleShareWhatsApp}
+                  title="مشاركة عبر واتساب"
+                  id="share-whatsapp"
+                >
+                  <i className="fa-brands fa-whatsapp"></i>
+                  <span>WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="social-btn btn-facebook"
+                  onClick={handleShareFacebook}
+                  title="مشاركة على فيسبوك"
+                  id="share-facebook"
+                >
+                  <i className="fa-brands fa-facebook-f"></i>
+                  <span>Facebook</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="social-btn btn-instagram"
+                  onClick={handleShareInstagram}
+                  title="مشاركة على انستغرام"
+                  id="share-instagram"
+                >
+                  <i className="fa-brands fa-instagram"></i>
+                  <span>Instagram</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="social-btn btn-tiktok"
+                  onClick={handleShareTikTok}
+                  title="مشاركة على تيك توك"
+                  id="share-tiktok"
+                >
+                  <i className="fa-brands fa-tiktok"></i>
+                  <span>TikTok</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="social-btn btn-telegram"
+                  onClick={handleShareTelegram}
+                  title="مشاركة على تيليجرام"
+                  id="share-telegram"
+                >
+                  <i className="fa-brands fa-telegram"></i>
+                  <span>Telegram</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -316,6 +496,12 @@ const ProductDetail = () => {
       <div className={`toast success ${toast ? 'show' : ''}`} role="alert">
         <i className="fa-solid fa-check"></i>
         تمت إضافة المنتج إلى السلة بنجاح!
+      </div>
+
+      {/* Share Toast Notification */}
+      <div className={`toast success ${shareToast ? 'show' : ''}`} role="alert">
+        <i className="fa-solid fa-circle-check"></i>
+        <span>{shareToast}</span>
       </div>
     </div>
   );

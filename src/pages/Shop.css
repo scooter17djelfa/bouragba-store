@@ -257,4 +257,14 @@
   .sort-select {
     flex: 1;
   }
+  .category-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cat-pill {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 }

@@ -39,7 +39,19 @@ const Navbar = () => {
     <>
       <header className={`navbar ${scrolled ? 'scrolled' : ''}`}>
         <div className="navbar-inner container">
-         
+          {/* Right/Start: Logo */}
+          <Link to="/" className="navbar-logo" id="navbar-logo" aria-label={storeName}>
+            <img
+              src={storeLogo || '/logo.png'}
+              alt={storeName}
+              style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }}
+              onError={(e) => { e.currentTarget.src = '/logo.png'; }}
+            />
+            <div className="logo-text">
+              <span className="logo-name">{storeName}</span>
+              <span className="logo-sub">المتجر الرسمي</span>
+            </div>
+          </Link>
 
           {/* Left: Cart + Phone */}
           <div className="navbar-left">
