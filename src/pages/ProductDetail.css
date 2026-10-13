@@ -475,6 +475,99 @@
   border-color: #16a34a;
 }
 
+/* Product Variants & Options Section */
+.detail-variants-section {
+  background: var(--gray-50);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.15rem;
+  margin-bottom: 1.35rem;
+}
+
+.variants-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.selected-variant-hint {
+  font-size: 0.8rem;
+  color: var(--gray-600);
+}
+
+.selected-variant-hint strong {
+  color: var(--primary);
+}
+
+.variants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.65rem;
+}
+
+.variant-card-btn {
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  text-align: right;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  position: relative;
+  font-family: inherit;
+}
+
+.variant-card-btn:hover {
+  border-color: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.variant-card-btn.selected {
+  border-color: var(--primary);
+  background: #fffaf5;
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.variant-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 18px;
+}
+
+.variant-type-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--gray-500);
+  background: var(--gray-100);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.variant-check-icon {
+  color: var(--primary);
+  font-size: 0.85rem;
+  margin-inline-start: auto;
+}
+
+.variant-name-text {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--gray-900);
+}
+
+.variant-price-tag {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
 @media (max-width: 1024px) {
   .product-main {
     gap: 2rem;
@@ -512,4 +605,63 @@
     justify-content: center;
     width: 100%;
   }
+}
+/* Variant Selector Styles */
+.detail-variants-section {
+  margin: 1.5rem 0;
+  padding: 0.8rem;
+  background: var(--gray-50);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.variants-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+.variants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+.variant-card-btn {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.variant-card-btn:hover {
+  border-color: var(--primary);
+}
+.variant-card-btn.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.2);
+}
+.variant-type-badge {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 0px 4px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.3rem;
+}
+.variant-name-text {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--gray-800);
+}
+.variant-price-tag {
+  font-size: 0.78rem;
+  color: var(--primary);
+}
+.variant-check-icon {
+  color: var(--primary);
+  font-size: 0.9rem;
 }

@@ -53,51 +53,69 @@ const CartDrawer = () => {
             </div>
           ) : (
             <ul className="cart-items">
-              {items.map((item) => (
-                <li key={item.id} className="cart-item animate-fade-in">
-                  <img
-                    src={item.image || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&q=80'}
-                    alt={item.name}
-                    className="cart-item-img"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&q=80';
-                    }}
-                  />
-                  <div className="cart-item-info">
-                    <h4 className="cart-item-name">{item.name}</h4>
-                    <p className="cart-item-price">{fmt(item.price)}</p>
-                    <div className="cart-item-qty">
+              {items.map((item) => {
+                const itemKey = item.cartItemId || item.id;
+                return (
+                  <li key={itemKey} className="cart-item animate-fade-in">
+                    <img
+                      src={item.image || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&q=80'}
+                      alt={item.name}
+                      className="cart-item-img"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&q=80';
+                      }}
+                    />
+                    <div className="cart-item-info">
+                      <h4 className="cart-item-name">{item.name}</h4>
+                      {item.variant && (
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: 'var(--primary)',
+                          background: 'rgba(234, 88, 12, 0.08)',
+                          border: '1px solid rgba(234, 88, 12, 0.2)',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          marginBottom: '4px'
+                        }}>
+                          {item.variant.type ? `${item.variant.type}: ` : ''}{item.variant.name || item.variant}
+                        </span>
+                      )}
+                      <p className="cart-item-price">{fmt(item.price)}</p>
+                      <div className="cart-item-qty">
+                        <button
+                          onClick={() => updateQty(itemKey, item.qty - 1)}
+                          className="qty-btn"
+                          aria-label="تقليل الكمية"
+                        >
+                          <i className="fa-solid fa-minus"></i>
+                        </button>
+                        <span className="qty-value">{item.qty}</span>
+                        <button
+                          onClick={() => updateQty(itemKey, item.qty + 1)}
+                          className="qty-btn"
+                          aria-label="زيادة الكمية"
+                        >
+                          <i className="fa-solid fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="cart-item-right">
+                      <p className="cart-item-total">{fmt(item.price * item.qty)}</p>
                       <button
-                        onClick={() => updateQty(item.id, item.qty - 1)}
-                        className="qty-btn"
-                        aria-label="تقليل الكمية"
+                        onClick={() => removeItem(itemKey)}
+                        className="remove-item-btn"
+                        aria-label="حذف المنتج"
                       >
-                        <i className="fa-solid fa-minus"></i>
-                      </button>
-                      <span className="qty-value">{item.qty}</span>
-                      <button
-                        onClick={() => updateQty(item.id, item.qty + 1)}
-                        className="qty-btn"
-                        aria-label="زيادة الكمية"
-                      >
-                        <i className="fa-solid fa-plus"></i>
+                        <i className="fa-solid fa-trash-can"></i>
                       </button>
                     </div>
-                  </div>
-                  <div className="cart-item-right">
-                    <p className="cart-item-total">{fmt(item.price * item.qty)}</p>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="remove-item-btn"
-                      aria-label="حذف المنتج"
-                    >
-                      <i className="fa-solid fa-trash-can"></i>
-                    </button>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

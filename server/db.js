@@ -6,7 +6,7 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.join(__dirname, '..', 'bouragba_store.sqlite');
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '..', 'bouragba_store.sqlite');
 const db = new Database(dbPath);
 
 // Enable WAL mode for high performance and concurrency
@@ -27,6 +27,7 @@ export function initDB() {
       stock INTEGER DEFAULT 0,
       image TEXT NOT NULL,
       images TEXT DEFAULT '[]',
+      variants TEXT DEFAULT '[]',
       description TEXT DEFAULT '',
       specs TEXT DEFAULT '{}',
       rating REAL DEFAULT 5.0,
@@ -90,6 +91,13 @@ export function initDB() {
   // Migration: Ensure cost_price column exists in products table for SQLite
   try {
     db.prepare('ALTER TABLE products ADD COLUMN cost_price REAL DEFAULT 0').run();
+  } catch (e) {
+    // Column already exists
+  }
+
+  // Migration: Ensure variants column exists in products table for SQLite
+  try {
+    db.prepare("ALTER TABLE products ADD COLUMN variants TEXT DEFAULT '[]'").run();
   } catch (e) {
     // Column already exists
   }
@@ -372,6 +380,24 @@ export function initDB() {
     db.prepare('UPDATE products SET cost_price = 148000 WHERE id = 2 AND (cost_price IS NULL OR cost_price = 0)').run();
     db.prepare('UPDATE products SET cost_price = 30000 WHERE id = 3 AND (cost_price IS NULL OR cost_price = 0)').run();
     db.prepare('UPDATE products SET cost_price = 2800 WHERE id = 4 AND (cost_price IS NULL OR cost_price = 0)').run();
+
+    // Seed realistic variants for sample products if empty
+    db.prepare(`
+      UPDATE products SET variants = ?
+      WHERE id = 1 AND (variants IS NULL OR variants = '' OR variants = '[]')
+    `).run(JSON.stringify([
+      { id: 'v1', type: 'الذاكرة والتخزين', name: '256GB', price: 185000, costPrice: 165000, stock: 8 },
+      { id: 'v2', type: 'الذاكرة والتخزين', name: '512GB', price: 215000, costPrice: 190000, stock: 4 },
+      { id: 'v3', type: 'الذاكرة والتخزين', name: '1TB', price: 245000, costPrice: 215000, stock: 2 }
+    ]));
+
+    db.prepare(`
+      UPDATE products SET variants = ?
+      WHERE id = 2 AND (variants IS NULL OR variants = '' OR variants = '[]')
+    `).run(JSON.stringify([
+      { id: 'v4', type: 'اللون والذاكرة', name: 'رمادي تيتانيوم - 256GB', price: 168000, costPrice: 148000, stock: 5 },
+      { id: 'v5', type: 'اللون والذاكرة', name: 'أسود تيتانيوم - 512GB', price: 192000, costPrice: 168000, stock: 3 }
+    ]));
   } catch (e) {
     // Ignore if not present
   }

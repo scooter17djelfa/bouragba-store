@@ -24,6 +24,7 @@ const AdminProducts = () => {
     stock: '10',
     image: '',
     images: [],
+    variants: [],
     description: '',
     isNew: false,
     isFeatured: false,
@@ -70,6 +71,7 @@ const AdminProducts = () => {
       stock: '10',
       image: '',
       images: [],
+      variants: [],
       description: '',
       isNew: true,
       isFeatured: false,
@@ -95,6 +97,7 @@ const AdminProducts = () => {
       stock: p.stock,
       image: p.image || pImages[0] || '',
       images: pImages,
+      variants: Array.isArray(p.variants) ? p.variants : [],
       description: p.description || '',
       isNew: Boolean(p.isNew),
       isFeatured: Boolean(p.isFeatured),
@@ -217,6 +220,7 @@ const AdminProducts = () => {
         stock: Number(formData.stock) || 0,
         image: mainImg,
         images: imagesList,
+        variants: Array.isArray(formData.variants) ? formData.variants : [],
         description: formData.description.trim(),
         isNew: formData.isNew,
         isFeatured: formData.isFeatured,
@@ -718,6 +722,146 @@ const AdminProducts = () => {
                       }}
                     >
                       لا توجد صور مضافة للمنتج بعد. يمكنك رفع أكثر من صورة واحدة من جهازك أو وضع روابط مباشرة
+                    </div>
+                  )}
+                </div>
+
+                {/* Variants / Options Manager */}
+                <div className="form-group full-width" style={{ background: 'var(--gray-50)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                    <label className="form-label" style={{ marginBottom: 0, fontWeight: 800 }}>
+                      <i className="fa-solid fa-swatchbook" style={{ marginLeft: '0.4rem', color: 'var(--primary)' }}></i>
+                      خيارات المنتج (أحجام / ألوان / مقاسات)
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem' }}
+                      onClick={() => {
+                        const newVariant = {
+                          id: 'v_' + Date.now(),
+                          type: '',
+                          name: '',
+                          price: formData.price || '',
+                          costPrice: formData.costPrice || '',
+                          stock: '0'
+                        };
+                        setFormData(prev => ({ ...prev, variants: [...(prev.variants || []), newVariant] }));
+                      }}
+                    >
+                      <i className="fa-solid fa-plus"></i>
+                      إضافة خيار
+                    </button>
+                  </div>
+
+                  {(!formData.variants || formData.variants.length === 0) ? (
+                    <div style={{ padding: '0.85rem', background: '#ffffff', border: '1px dashed var(--border)', borderRadius: 'var(--radius-sm)', textAlign: 'center', color: 'var(--gray-500)', fontSize: '0.83rem' }}>
+                      <i className="fa-solid fa-info-circle" style={{ marginLeft: '0.3rem' }}></i>
+                      لا توجد خيارات (أحجام/ألوان) مضافة. سيتم عرض المنتج بسعر واحد فقط.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {formData.variants.map((v, idx) => (
+                        <div key={v.id || idx} style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1.5fr 1fr 1fr 1fr auto',
+                          gap: '0.45rem',
+                          alignItems: 'end',
+                          background: '#ffffff',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '0.65rem',
+                        }}>
+                          <div>
+                            <small style={{ color: 'var(--gray-500)', fontSize: '0.7rem', fontWeight: 700 }}>النوع</small>
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                              placeholder="مثال: اللون"
+                              value={v.type || ''}
+                              onChange={e => {
+                                const updated = [...formData.variants];
+                                updated[idx] = { ...updated[idx], type: e.target.value };
+                                setFormData(prev => ({ ...prev, variants: updated }));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <small style={{ color: 'var(--gray-500)', fontSize: '0.7rem', fontWeight: 700 }}>الاسم *</small>
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                              placeholder="مثال: أسود - 256GB"
+                              value={v.name || ''}
+                              onChange={e => {
+                                const updated = [...formData.variants];
+                                updated[idx] = { ...updated[idx], name: e.target.value };
+                                setFormData(prev => ({ ...prev, variants: updated }));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <small style={{ color: 'var(--gray-500)', fontSize: '0.7rem', fontWeight: 700 }}>سعر البيع *</small>
+                            <input
+                              type="number"
+                              className="form-input"
+                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                              placeholder="185000"
+                              min="0"
+                              value={v.price || ''}
+                              onChange={e => {
+                                const updated = [...formData.variants];
+                                updated[idx] = { ...updated[idx], price: e.target.value };
+                                setFormData(prev => ({ ...prev, variants: updated }));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <small style={{ color: 'var(--gray-500)', fontSize: '0.7rem', fontWeight: 700 }}>سعر الشراء</small>
+                            <input
+                              type="number"
+                              className="form-input"
+                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                              placeholder="165000"
+                              min="0"
+                              value={v.costPrice || ''}
+                              onChange={e => {
+                                const updated = [...formData.variants];
+                                updated[idx] = { ...updated[idx], costPrice: e.target.value };
+                                setFormData(prev => ({ ...prev, variants: updated }));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <small style={{ color: 'var(--gray-500)', fontSize: '0.7rem', fontWeight: 700 }}>المخزون</small>
+                            <input
+                              type="number"
+                              className="form-input"
+                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                              placeholder="10"
+                              min="0"
+                              value={v.stock || ''}
+                              onChange={e => {
+                                const updated = [...formData.variants];
+                                updated[idx] = { ...updated[idx], stock: e.target.value };
+                                setFormData(prev => ({ ...prev, variants: updated }));
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, variants: prev.variants.filter((_, i) => i !== idx) }));
+                            }}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem', padding: '0.35rem' }}
+                            title="حذف الخيار"
+                          >
+                            <i className="fa-solid fa-trash-can"></i>
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

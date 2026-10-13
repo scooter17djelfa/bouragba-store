@@ -2,27 +2,48 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 const CartContext = createContext();
 
+const getItemKey = (item) => {
+  if (!item) return '';
+  if (item.cartItemId) return String(item.cartItemId);
+  if (item.variant) {
+    const vKey = item.variant.id || item.variant.name || '';
+    return `${item.id}-${vKey}`;
+  }
+  return String(item.id);
+};
+
 const cartReducer = (state, action) => {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const exists = state.items.find(i => i.id === action.payload.id);
+      const payloadKey = getItemKey(action.payload);
+      const qtyToAdd = action.payload.qty || 1;
+      const exists = state.items.find(i => getItemKey(i) === payloadKey);
+
       if (exists) {
         return {
           ...state,
           items: state.items.map(i =>
-            i.id === action.payload.id ? { ...i, qty: i.qty + 1 } : i
+            getItemKey(i) === payloadKey ? { ...i, qty: i.qty + qtyToAdd } : i
           ),
         };
       }
-      return { ...state, items: [...state.items, { ...action.payload, qty: 1 }] };
+      return {
+        ...state,
+        items: [...state.items, { ...action.payload, cartItemId: payloadKey, qty: qtyToAdd }]
+      };
     }
     case 'REMOVE_ITEM':
-      return { ...state, items: state.items.filter(i => i.id !== action.payload) };
+      return {
+        ...state,
+        items: state.items.filter(i => getItemKey(i) !== String(action.payload))
+      };
     case 'UPDATE_QTY':
       return {
         ...state,
         items: state.items.map(i =>
-          i.id === action.payload.id ? { ...i, qty: action.payload.qty } : i
+          getItemKey(i) === String(action.payload.id)
+            ? { ...i, qty: action.payload.qty }
+            : i
         ).filter(i => i.qty > 0),
       };
     case 'CLEAR_CART':
@@ -51,7 +72,7 @@ export const CartProvider = ({ children }) => {
   const totalItems = state.items.reduce((sum, i) => sum + i.qty, 0);
   const totalPrice = state.items.reduce((sum, i) => sum + i.price * i.qty, 0);
 
-  const addItem = (product) => dispatch({ type: 'ADD_ITEM', payload: product });
+  const addItem = (product, qty = 1) => dispatch({ type: 'ADD_ITEM', payload: { ...product, qty } });
   const removeItem = (id) => dispatch({ type: 'REMOVE_ITEM', payload: id });
   const updateQty = (id, qty) => dispatch({ type: 'UPDATE_QTY', payload: { id, qty } });
   const clearCart = () => dispatch({ type: 'CLEAR_CART' });

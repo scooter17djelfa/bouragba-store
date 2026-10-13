@@ -18,6 +18,7 @@ const ProductDetail = () => {
   const [activeTab, setActiveTab] = useState('desc');
   const [copiedLink, setCopiedLink] = useState(false);
   const [shareToast, setShareToast] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState(null);
 
   const triggerShareToast = (msg) => {
     setShareToast(msg);
@@ -57,6 +58,9 @@ const ProductDetail = () => {
           setProduct(data);
           setActiveImg(0);
           setQty(1);
+          // Auto-select first variant if available
+          const variants = Array.isArray(data.variants) ? data.variants : [];
+          setSelectedVariant(variants.length > 0 ? variants[0] : null);
 
           // Fetch related
           if (data.category) {
@@ -105,17 +109,53 @@ const ProductDetail = () => {
     );
   }
 
+  const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+  const effectivePrice = selectedVariant ? Number(selectedVariant.price) : Number(product.price);
+  const effectiveStock = selectedVariant && selectedVariant.stock !== undefined ? Number(selectedVariant.stock) : Number(product.stock);
+
   const fmt = (n) => Number(n).toLocaleString('ar-DZ') + ' د.ج';
-  const discount = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
+  const discount = product.oldPrice ? Math.round((1 - effectivePrice / product.oldPrice) * 100) : 0;
 
   const handleAddToCart = () => {
-    for (let i = 0; i < qty; i++) addItem(product);
+    const cartProduct = {
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: effectivePrice,
+      costPrice: selectedVariant?.costPrice || product.costPrice || 0,
+      stock: effectiveStock,
+    };
+    if (selectedVariant) {
+      cartProduct.variant = {
+        id: selectedVariant.id || selectedVariant.name,
+        type: selectedVariant.type || '',
+        name: selectedVariant.name,
+        price: effectivePrice,
+      };
+    }
+    addItem(cartProduct, qty);
     setToast(true);
     setTimeout(() => setToast(false), 2800);
   };
 
   const handleBuyNow = () => {
-    for (let i = 0; i < qty; i++) addItem(product);
+    const cartProduct = {
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: effectivePrice,
+      costPrice: selectedVariant?.costPrice || product.costPrice || 0,
+      stock: effectiveStock,
+    };
+    if (selectedVariant) {
+      cartProduct.variant = {
+        id: selectedVariant.id || selectedVariant.name,
+        type: selectedVariant.type || '',
+        name: selectedVariant.name,
+        price: effectivePrice,
+      };
+    }
+    addItem(cartProduct, qty);
     navigate('/checkout');
   };
 
@@ -185,11 +225,11 @@ const ProductDetail = () => {
             <h1 className="detail-name">{product.name}</h1>
 
             <div style={{ marginBottom: '1rem' }}>
-              <span className={`detail-stock ${product.stock > 0 ? 'in-stock' : 'out-stock'}`}>
-                {product.stock > 0 ? (
+              <span className={`detail-stock ${effectiveStock > 0 ? 'in-stock' : 'out-stock'}`}>
+                {effectiveStock > 0 ? (
                   <>
                     <i className="fa-solid fa-circle-check" style={{ marginLeft: '0.3rem' }}></i>
-                    متوفر ({product.stock} قطعة)
+                    متوفر ({effectiveStock} قطعة)
                   </>
                 ) : (
                   <>
@@ -201,7 +241,7 @@ const ProductDetail = () => {
             </div>
 
             <div className="detail-price-block">
-              <span className="detail-price">{fmt(product.price)}</span>
+              <span className="detail-price">{fmt(effectivePrice)}</span>
               {product.oldPrice && (
                 <span className="detail-old-price">{fmt(product.oldPrice)}</span>
               )}
@@ -211,6 +251,45 @@ const ProductDetail = () => {
             </div>
 
             <p className="detail-desc">{product.description}</p>
+
+            {/* Variant Selector */}
+            {hasVariants && (
+              <div className="detail-variants-section" id="variant-selector">
+                <div className="variants-header">
+                  <label className="form-label" style={{ marginBottom: 0, fontWeight: 800 }}>
+                    <i className="fa-solid fa-swatchbook" style={{ marginLeft: '0.4rem', color: 'var(--primary)' }}></i>
+                    اختر الموديل أو الحجم:
+                  </label>
+                  {selectedVariant && (
+                    <span className="selected-variant-hint">
+                      <i className="fa-solid fa-check-circle" style={{ marginLeft: '0.3rem', color: 'var(--primary)' }}></i>
+                      تم اختيار: <strong>{selectedVariant.name}</strong>
+                    </span>
+                  )}
+                </div>
+                <div className="variants-grid">
+                  {product.variants.map((v, idx) => {
+                    const isSelected = selectedVariant && (selectedVariant.id === v.id || selectedVariant.name === v.name);
+                    return (
+                      <button
+                        key={v.id || idx}
+                        type="button"
+                        className={`variant-card-btn ${isSelected ? 'selected' : ''}`}
+                        onClick={() => { setSelectedVariant(v); setQty(1); }}
+                        id={`variant-${v.id || idx}`}
+                      >
+                        <div className="variant-card-top">
+                          {v.type && <span className="variant-type-badge">{v.type}</span>}
+                          {isSelected && <i className="fa-solid fa-circle-check variant-check-icon"></i>}
+                        </div>
+                        <span className="variant-name-text">{v.name}</span>
+                        <span className="variant-price-tag">{fmt(v.price)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Quantity */}
             <div className="detail-qty">
@@ -228,8 +307,8 @@ const ProductDetail = () => {
                 <span className="qty-num">{qty}</span>
                 <button
                   className="qty-btn"
-                  onClick={() => setQty(q => Math.min(product.stock || 99, q + 1))}
-                  disabled={qty >= (product.stock || 99)}
+                  onClick={() => setQty(q => Math.min(effectiveStock || 99, q + 1))}
+                  disabled={qty >= (effectiveStock || 99)}
                   aria-label="زيادة"
                   id="qty-plus"
                 >
@@ -243,7 +322,7 @@ const ProductDetail = () => {
               <button
                 className="btn-primary detail-add-btn"
                 onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                disabled={effectiveStock === 0}
                 id="detail-add-to-cart"
               >
                 <i className="fa-solid fa-cart-plus"></i>
@@ -252,7 +331,7 @@ const ProductDetail = () => {
               <button
                 className="btn-navy detail-buy-btn"
                 onClick={handleBuyNow}
-                disabled={product.stock === 0}
+                disabled={effectiveStock === 0}
                 id="detail-buy-now"
               >
                 <i className="fa-solid fa-bolt"></i>

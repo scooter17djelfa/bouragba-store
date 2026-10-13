@@ -32,6 +32,7 @@ function formatProduct(row) {
   if (!row) return null;
   let parsedImages = [];
   let parsedSpecs = {};
+  let parsedVariants = [];
   try {
     parsedImages = typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []);
   } catch (e) {
@@ -41,6 +42,11 @@ function formatProduct(row) {
     parsedSpecs = typeof row.specs === 'string' ? JSON.parse(row.specs) : (row.specs || {});
   } catch (e) {
     parsedSpecs = {};
+  }
+  try {
+    parsedVariants = typeof row.variants === 'string' ? JSON.parse(row.variants) : (row.variants || []);
+  } catch (e) {
+    parsedVariants = [];
   }
 
   return {
@@ -54,6 +60,7 @@ function formatProduct(row) {
     stock: Number(row.stock),
     image: row.image,
     images: parsedImages.length > 0 ? parsedImages : [row.image],
+    variants: Array.isArray(parsedVariants) ? parsedVariants : [],
     description: row.description || '',
     specs: parsedSpecs,
     rating: Number(row.rating || 5.0),
@@ -149,6 +156,7 @@ app.post('/api/products', (req, res) => {
       stock,
       image,
       images,
+      variants,
       description,
       specs,
       rating,
@@ -162,11 +170,12 @@ app.post('/api/products', (req, res) => {
 
     const defaultImg = image || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80';
     const imagesList = Array.isArray(images) && images.length > 0 ? images : [defaultImg];
+    const variantsList = Array.isArray(variants) ? variants : [];
 
     const stmt = db.prepare(`
       INSERT INTO products (
-        name, category, brand, cost_price, price, old_price, stock, image, images, description, specs, rating, reviews, is_new, is_featured
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        name, category, brand, cost_price, price, old_price, stock, image, images, variants, description, specs, rating, reviews, is_new, is_featured
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -179,6 +188,7 @@ app.post('/api/products', (req, res) => {
       Number(stock) || 0,
       defaultImg,
       JSON.stringify(imagesList),
+      JSON.stringify(variantsList),
       description || '',
       JSON.stringify(specs || {}),
       Number(rating) || 5.0,
@@ -213,6 +223,7 @@ app.put('/api/products/:id', (req, res) => {
       stock,
       image,
       images,
+      variants,
       description,
       specs,
       rating,
@@ -228,6 +239,10 @@ app.put('/api/products/:id', (req, res) => {
       imagesList = JSON.stringify([image]);
     }
 
+    const variantsList = variants !== undefined
+      ? JSON.stringify(Array.isArray(variants) ? variants : [])
+      : (existing.variants || '[]');
+
     const stmt = db.prepare(`
       UPDATE products SET
         name = ?,
@@ -239,6 +254,7 @@ app.put('/api/products/:id', (req, res) => {
         stock = ?,
         image = ?,
         images = ?,
+        variants = ?,
         description = ?,
         specs = ?,
         rating = ?,
@@ -257,6 +273,7 @@ app.put('/api/products/:id', (req, res) => {
       stock !== undefined ? Number(stock) : existing.stock,
       mainImage,
       imagesList,
+      variantsList,
       description !== undefined ? description : existing.description,
       specs !== undefined ? JSON.stringify(specs) : existing.specs,
       rating !== undefined ? Number(rating) : existing.rating,
@@ -775,8 +792,8 @@ if (fs.existsSync(distDir)) {
 }
 
 // Start Server
-app.listen(PORT, () => {
-  console.log(`[Bouragba Store API] Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[Bouragba Store API] Server running on port ${PORT}`);
   console.log(`[Bouragba Store SQLite] Database connected successfully`);
   const { isConfigured } = getCloudinaryConfig();
   console.log(`[Cloudinary Integration] Status: ${isConfigured ? 'Connected' : 'Ready (configure in settings)'}`);
